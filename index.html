@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>CORE V19.9 - NODO ORO</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        :root { --neon: #00ff41; --bg: #0a0a0a; --panel: #121212; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background-color:var(--bg) !important; color:#fff; font-family:'Segoe UI',Roboto,sans-serif; margin:0; padding:10px; display:block !important; min-height:100vh; }
+        .main-container { border:2px solid var(--neon); background:var(--panel); border-radius:15px; padding:15px; max-width:100%; margin:auto; display:block !important; }
+        h2 { color:var(--neon); text-align:center; margin:5px 0; font-size:1.2rem; text-transform:uppercase; }
+        .st { background:rgba(0,255,65,.15); color:var(--neon); padding:8px; margin-top:15px; font-size:11px; font-weight:bold; border-left:4px solid var(--neon); }
+        input, textarea { width:100%; background:#1e1e1e; border:1px solid #333; color:#fff; padding:12px; margin-top:8px; border-radius:8px; font-size:16px; }
+        input[type="email"] { color:#90caf9; }
+        button { width:100%; padding:15px; margin-top:10px; border-radius:8px; border:none; font-weight:bold; text-transform:uppercase; cursor:pointer; }
+        .btn-forjar { background:var(--neon); color:#000; font-size:1.1rem; margin-top:20px; }
+        .btn-add    { background:#333; color:#ff9900; border:1px dashed #ff9900; }
+        .btn-clear  { background:#1a1a1a; color:#ff4444; border:1px solid #ff4444; margin-top:8px; font-size:.85rem; padding:10px; }
+
+        /* TEMA SWITCH */
+        .tema-wrapper { display:flex; align-items:center; justify-content:center; gap:10px; margin:12px 0 4px 0; }
+        .tema-label   { font-size:11px; color:#888; }
+        .tema-btn     { display:flex; border-radius:30px; overflow:hidden; border:2px solid #444; width:auto; margin:0; padding:0; }
+        .tema-opt     { flex:1; padding:8px 16px; font-size:11px; font-weight:bold; cursor:pointer; border:none; background:#222; color:#666; width:auto; margin:0; border-radius:0; text-transform:none; transition:background .2s,color .2s; }
+        .tema-opt.activo-claro  { background:#fffde7; color:#333; }
+        .tema-opt.activo-oscuro { background:#1a237e; color:#90caf9; }
+
+        /* OUTPUT */
+        .output-box { display:none; background:#0d1f0d; border:1px solid var(--neon); padding:15px; border-radius:10px; margin-bottom:20px; color:var(--neon); }
+
+        /* MÓDULOS ORO — PANEL */
+        .sec-box { border:1px solid #ff9900; padding:12px 15px; margin-top:10px; background:#0a0800; border-radius:8px; transition:background .25s,border-color .25s; }
+        .sec-box.nodo-oculto { background:#232323; border-color:#555; }
+        .sec-box-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; gap:8px; }
+        .sec-box-label { font-size:10px; color:#ff9900; font-weight:bold; letter-spacing:.5px; flex:1; }
+        .sec-box-controles { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+        .sem-btn { display:flex; border-radius:20px; overflow:hidden; border:1.5px solid #444; }
+        .sem-opt { padding:5px 11px; font-size:9px; font-weight:bold; cursor:pointer; border:none; background:#222; color:#555; margin:0; width:auto; border-radius:0; text-transform:uppercase; }
+        .sem-opt.sem-oculto-on  { background:#cc3333; color:#fff; }
+        .sem-opt.sem-visible-on { background:#00ff41; color:#000; }
+        .btn-editar { background:#fbc02d; color:#000; width:28px; height:28px; border-radius:50%; padding:0; font-size:13px; margin:0; flex-shrink:0; }
+        .sec-box-hint  { font-size:10px; color:#666; margin-top:4px; }
+        .sec-fields.collapsed { display:none; }
+
+        /* REDES */
+        .red-field { display:flex; align-items:center; gap:8px; margin-top:8px; }
+        .red-field .red-ico-prev { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
+        .red-field input { margin-top:0; flex:1; }
+        .ico-wsp { background:#25d366; } .ico-ig { background:radial-gradient(circle at 30% 110%,#fdf497,#fd5949 45%,#d6249f 60%,#285aeb); }
+        .ico-fb  { background:#1877f2; } .ico-yt  { background:#ff0000; }
+        .ico-tw  { background:#000; }   .ico-tt  { background:#010101; border:1px solid #69C9D0; }
+        .ico-li  { background:#0077b5; }
+
+        /* ESTADOS */
+        .save-indicator { text-align:center; font-size:10px; color:var(--neon); margin-top:5px; opacity:0; transition:opacity .3s; }
+        .save-indicator.visible { opacity:1; }
+        .zip-status { text-align:center; font-size:12px; font-weight:bold; padding:10px; margin-top:10px; border-radius:8px; display:none; }
+        .zip-status.ok  { background:#0d3d0d; color:var(--neon); border:1px solid var(--neon); display:block; }
+        .zip-status.err { background:#3d0d0d; color:#ff4444;     border:1px solid #ff4444;     display:block; }
+    </style>
+</head>
+<body>
+
+<div class="main-container" id="app">
+    <h2>CORE V19.9 UNIFICADO</h2>
+    <p style="text-align:center;font-size:10px;color:#888;">NODO ORO ACORDEÓN + CARRUSEL | SAMSUNG A51</p>
+    <div id="saveIndicator" class="save-indicator">DATOS GUARDADOS</div>
+
+    <!-- IMPORTADOR A-JSON -->
+    <label style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;margin-top:10px;background:#0d1b2a;color:#90caf9;border:1.5px solid #90caf9;border-radius:8px;font-weight:bold;font-size:13px;cursor:pointer;text-align:center;">
+        📂 CARGAR ARCHIVO A-JSON
+        <input type="file" accept=".json" onchange="cargarAJSON(this)" style="position:absolute;opacity:0;width:0;height:0;">
+    </label>
+
+    <!-- TEMA -->
+    <div class="tema-wrapper">
+        <span class="tema-label">TEMA TARJETA FINAL:</span>
+        <div class="tema-btn">
+            <button class="tema-opt activo-claro" id="btnClaro"  onclick="setTema('claro')">☀ CLARO</button>
+            <button class="tema-opt"              id="btnOscuro" onclick="setTema('oscuro')">🌙 OSCURO</button>
+        </div>
+    </div>
+
+    <!-- RESULTADO -->
+    <div id="resultArea" class="output-box">
+        <div style="font-size:11px;font-weight:bold;margin-bottom:6px;">VISTA PREVIA DEL CÓDIGO:</div>
+        <textarea id="finalCode" readonly style="background:#000;color:#00ff41;height:90px;font-size:9px;border:1px solid #333;"></textarea>
+        <div style="display:flex;gap:10px;margin-top:10px;">
+            <button onclick="copiarCodigo()" style="background:#fbc02d;color:#000;flex:1;padding:12px;">COPIAR HTML</button>
+            <button onclick="descargarZip()" style="background:#2196f3;color:#fff;flex:1;padding:12px;">⬇ BAJAR ZIP</button>
+        </div>
+        <div id="zipStatus" class="zip-status"></div>
+    </div>
+
+    <!-- IDENTIDAD -->
+    <div class="st">IDENTIDAD PROFESIONAL</div>
+    <input type="text"  id="nombre"    placeholder="Nombre de Marca/Empresa">
+    <input type="text"  id="profesion" placeholder="Cargo (Ej: Vendedor Digital)">
+    <input type="text"  id="banner"    placeholder="URL Foto Banner (Fondo)">
+    <input type="text"  id="perfil"    placeholder="URL Foto Perfil (Circular) — usada en OG/WhatsApp">
+    <input type="text"  id="url_fondo" placeholder="URL Fondo de Pantalla Completa (cubre todo el body)">
+    <input type="text"  id="yt_gancho" placeholder="URL YouTube Principal (Video Hero)">
+    <div style="margin-top:10px;">
+        <label style="font-size:12px;color:#aaa;">COLOR DE IDENTIDAD:</label>
+        <input type="color" id="mainColor" value="#00ff41" style="height:50px;">
+    </div>
+
+    <!-- INYECCIÓN TÉCNICA — 3 BLOQUES -->
+    <div class="st">INYECCIÓN TÉCNICA (3 BLOQUES)</div>
+    <p style="font-size:10px;color:#666;margin:4px 0 0 0;">Pixels, GTM, scripts. Cada campo se inyecta en su posición exacta.</p>
+    <textarea id="html_head"       placeholder="HTML_HEAD — se inserta antes de </head> (meta pixels, GTM head)"></textarea>
+    <textarea id="html_body_open"  placeholder="HTML_BODY_OPEN — se inserta al abrir <body> (noscript GTM, etc)"></textarea>
+    <textarea id="html_body_close" placeholder="HTML_BODY_CLOSE — se inserta antes de </body> (scripts de cierre)"></textarea>
+
+    <!-- CONTACTO -->
+    <div class="st">CANALES DE CONTACTO</div>
+    <input type="text"  id="wsp"       placeholder="WhatsApp (Sin +, Ej: 549...) — usado en botón Consultar">
+    <input type="text"  id="call"      placeholder="Teléfono para Llamadas">
+    <input type="text"  id="mapa"      placeholder="Link Google Maps">
+    <input type="email" id="email_cli" placeholder="Correo Electrónico del Cliente">
+
+    <!-- REDES SOCIALES -->
+    <div class="st">REDES SOCIALES</div>
+    <p style="font-size:10px;color:#666;margin:4px 0 0 0;">Solo completá las redes que usás. Las vacías no aparecen.</p>
+    <div class="red-field"><div class="red-ico-prev ico-wsp">📱</div><input type="text" id="rs_wsp"       placeholder="WhatsApp — link completo (wa.me/549...)"></div>
+    <div class="red-field"><div class="red-ico-prev ico-ig">📷</div> <input type="text" id="rs_instagram" placeholder="Instagram — URL del perfil"></div>
+    <div class="red-field"><div class="red-ico-prev ico-fb">f</div>  <input type="text" id="rs_facebook"  placeholder="Facebook — URL del perfil/página"></div>
+    <div class="red-field"><div class="red-ico-prev ico-yt">▶</div>  <input type="text" id="rs_youtube"   placeholder="YouTube — URL del canal"></div>
+    <div class="red-field"><div class="red-ico-prev ico-tw" style="color:#fff;font-weight:bold;">𝕏</div><input type="text" id="rs_twitter" placeholder="X (Twitter) — URL del perfil"></div>
+    <div class="red-field"><div class="red-ico-prev ico-tt" style="color:#69C9D0;font-size:13px;font-weight:bold;">TT</div><input type="text" id="rs_tiktok" placeholder="TikTok — URL del perfil"></div>
+    <div class="red-field"><div class="red-ico-prev ico-li" style="color:#fff;font-weight:bold;">in</div><input type="text" id="rs_linkedin" placeholder="LinkedIn — URL del perfil"></div>
+
+    <!-- VENTAS -->
+    <div class="st">ACCIONES Y VENTAS</div>
+    <input type="text" id="cta_link" placeholder="Link Embudo / Botón Oro">
+    <input type="text" id="cta_txt"  placeholder="Texto del Botón Principal (Ej: ACCEDER)">
+    <input type="text" id="cat"      placeholder="Link Catálogo">
+    <input type="text" id="mp"       placeholder="Link Mercado Pago">
+    <input type="text" id="email_id" placeholder="ID Formspree (Formulario de contacto)">
+
+    <!-- HERRAMIENTAS EXTRAS -->
+    <div class="st">HERRAMIENTAS EXTRAS</div>
+    <input type="text" id="pdf_url" placeholder="URL de Descarga PDF (genera botón en la tarjeta)">
+
+    <!-- MÓDULOS ORO -->
+    <div id="modulosContainer"></div>
+    <button onclick="addModulo()" class="btn-add">+ AGREGAR NODO ORO (PRODUCTO)</button>
+
+    <button onclick="accionPrincipal()" class="btn-forjar">⚡ GENERAR + A-JSON Y EXPORTAR ZIP PARA NETLIFY</button>
+    <button onclick="limpiarTodo()"      class="btn-clear">🗑 LIMPIAR TODOS LOS CAMPOS</button>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+// UTILIDADES
+// ════════════════════════════════════════════════
+function slugify(str){return str.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9\s-]/g,'').trim().replace(/\s+/g,'-').replace(/-+/g,'-')||'ecosistema';}
+function esc(str){if(!str)return '';return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function getYTId(url){if(!url)return null;var m=url.match(/(?:youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]{11})/);return m?m[1]:null;}
+function v(id){return(document.getElementById(id)||{}).value||'';}
+function vt(id){return v(id).trim();}
+
+// ════════════════════════════════════════════════
+// TEMA
+// ════════════════════════════════════════════════
+var temaActual='claro';
+function setTema(t){
+    temaActual=t;
+    document.getElementById('btnClaro').className ='tema-opt'+(t==='claro' ?' activo-claro' :'');
+    document.getElementById('btnOscuro').className='tema-opt'+(t==='oscuro'?' activo-oscuro':'');
+    guardarDatos();
+}
+
+// ════════════════════════════════════════════════
+// LOCALSTORAGE
+// ════════════════════════════════════════════════
+var LS_KEY='core_v199_data';
+var CAMPOS_FIJOS=[
+    'nombre','profesion','banner','perfil','url_fondo','yt_gancho','mainColor',
+    'html_head','html_body_open','html_body_close',
+    'wsp','call','mapa','email_cli',
+    'rs_wsp','rs_instagram','rs_facebook','rs_youtube','rs_twitter','rs_tiktok','rs_linkedin',
+    'cta_link','cta_txt','cat','mp','email_id',
+    'pdf_url'
+];
+var saveTimer=null;
+
+function mostrarIndicador(){
+    var ind=document.getElementById('saveIndicator');
+    ind.classList.add('visible');
+    clearTimeout(saveTimer);
+    saveTimer=setTimeout(function(){ind.classList.remove('visible');},1500);
+}
+
+function guardarDatos(){
+    var data={tema:temaActual};
+    CAMPOS_FIJOS.forEach(function(id){var el=document.getElementById(id);if(el)data[id]=el.value;});
+    var modulos=[];
+    document.querySelectorAll('.sec-box').forEach(function(item){
+        modulos.push({
+            visible: item.dataset.visible!=='false',
+            tit:     item.querySelector('.m-tit')?.value     ||'',
+            imgs:    item.querySelector('.m-imgs')?.value    ||'',
+            yt:      item.querySelector('.m-yt')?.value      ||'',
+            desc:    item.querySelector('.m-desc')?.value    ||'',
+            btn_txt: item.querySelector('.m-btn-txt')?.value ||'',
+            btn_link:item.querySelector('.m-btn-link')?.value||''
+        });
+    });
+    data.modulos=modulos;
+    localStorage.setItem(LS_KEY,JSON.stringify(data));
+    mostrarIndicador();
+}
+
+function cargarDatos(){
+    var raw=localStorage.getItem(LS_KEY);
+    if(!raw)return;
+    var data;try{data=JSON.parse(raw);}catch(e){return;}
+    if(data.tema)setTema(data.tema);
+    CAMPOS_FIJOS.forEach(function(id){var el=document.getElementById(id);if(el&&data[id]!==undefined)el.value=data[id];});
+    if(Array.isArray(data.modulos))data.modulos.forEach(function(m){addModulo(m);});
+}
+
+function limpiarTodo(){
+    if(!confirm('¿Seguro que querés borrar todos los campos?'))return;
+    localStorage.removeItem(LS_KEY);
+    CAMPOS_FIJOS.forEach(function(id){var el=document.getElementById(id);if(el)el.value=(id==='mainColor')?'#00ff41':'';});
+    setTema('claro');
+    document.getElementById('modulosContainer').innerHTML='';
+    document.getElementById('resultArea').style.display='none';
+    document.getElementById('zipStatus').className='zip-status';
+}
+
+function escucharCambios(){
+    CAMPOS_FIJOS.forEach(function(id){
+        var el=document.getElementById(id);
+        if(el){el.addEventListener('input',guardarDatos);el.addEventListener('change',guardarDatos);}
+    });
+}
+function escucharModulo(div){
+    div.querySelectorAll('input,textarea').forEach(function(el){
+        el.addEventListener('input',guardarDatos);el.addEventListener('change',guardarDatos);
+    });
+}
+
+// ════════════════════════════════════════════════
+// MÓDULOS ORO — PANEL DE CARGA
+// ════════════════════════════════════════════════
+function addModulo(datos){
+    var visible = datos ? datos.visible !== false : true;
+    var div=document.createElement('div');
+    div.className='sec-box'+(visible?'':' nodo-oculto');
+    div.dataset.visible=visible?'true':'false';
+    div.innerHTML=
+        '<div class="sec-box-header">'+
+            '<span class="sec-box-label">NODO ORO</span>'+
+            '<div class="sec-box-controles">'+
+                '<div class="sem-btn">'+
+                    '<button class="sem-opt'+(visible?'':' sem-oculto-on')+'" onclick="setSemaforo(this,\'oculto\')">OCULTO</button>'+
+                    '<button class="sem-opt'+(visible?' sem-visible-on':'')+'" onclick="setSemaforo(this,\'visible\')">VISIBLE</button>'+
+                '</div>'+
+                '<button class="btn-editar" onclick="toggleEditar(this)" title="Editar campos">✏️</button>'+
+            '</div>'+
+        '</div>'+
+        '<div class="sec-fields'+(visible?'':' collapsed')+'">'+
+            '<input type="text" class="m-tit"      placeholder="1. Título del Producto (= texto del botón acordeón)">'+
+            '<input type="text" class="m-imgs"     placeholder="2. Imágenes: URL1, URL2, URL3 (separadas por coma)">'+
+            '<p class="sec-box-hint">Si cargás varias URLs separadas por coma, se genera un carrusel automático.</p>'+
+            '<input type="text" class="m-yt"       placeholder="3. URL Video YouTube (Opcional)">'+
+            '<textarea          class="m-desc"      placeholder="4. Descripción del producto"></textarea>'+
+            '<input type="text" class="m-btn-txt"   placeholder="5. Texto Botón Extra (Opcional, Ej: VER PRECIO)">'+
+            '<input type="text" class="m-btn-link"  placeholder="6. Link Botón Extra (URL o WhatsApp)">'+
+        '</div>';
+    if(datos){
+        div.querySelector('.m-tit').value      =datos.tit     ||'';
+        div.querySelector('.m-imgs').value     =datos.imgs    ||'';
+        div.querySelector('.m-yt').value       =datos.yt      ||'';
+        div.querySelector('.m-desc').value     =datos.desc    ||'';
+        div.querySelector('.m-btn-txt').value  =datos.btn_txt ||'';
+        div.querySelector('.m-btn-link').value =datos.btn_link||'';
+    }
+    document.getElementById('modulosContainer').appendChild(div);
+    escucharModulo(div);
+    if(!datos)guardarDatos();
+}
+
+function setSemaforo(btn,estado){
+    var box=btn.closest('.sec-box');
+    var opts=box.querySelectorAll('.sem-opt');
+    var fields=box.querySelector('.sec-fields');
+    var esVisible=estado==='visible';
+    box.dataset.visible=esVisible?'true':'false';
+    box.className='sec-box'+(esVisible?'':' nodo-oculto');
+    opts[0].className='sem-opt'+(esVisible?'':' sem-oculto-on');
+    opts[1].className='sem-opt'+(esVisible?' sem-visible-on':'');
+    if(esVisible){
+        fields.classList.remove('collapsed');
+    }else{
+        fields.classList.add('collapsed');
+    }
+    guardarDatos();
+}
+
+function toggleEditar(btn){
+    var box=btn.closest('.sec-box');
+    if(box.dataset.visible==='false')return;
+    box.querySelector('.sec-fields').classList.toggle('collapsed');
+}
+
+// ════════════════════════════════════════════════
+// CSS COMPLETO POR TEMA
+// ════════════════════════════════════════════════
+function getCSSbyTema(tema,color,bannerUrl,urlFondo){
+    var modBg  = tema==='oscuro' ? '#2a2a2a' : '#fff';
+    var modBdr = tema==='oscuro' ? '#444'    : '#eee';
+    var descCl = tema==='oscuro' ? '#aaa'    : '#555';
+    var emailCl= tema==='oscuro' ? '#90caf9' : '#1565c0';
+    var inputBg= tema==='oscuro' ? '#333'    : '#fff';
+    var inputBr= tema==='oscuro' ? '#555'    : '#ddd';
+    var inputCl= tema==='oscuro' ? '#e0e0e0' : '#333';
+    var pieCl  = tema==='oscuro' ? '#555'    : '#aaa';
+    var bodyBg = tema==='oscuro' ? '#111'    : '#f4f7f6';
+    var bodyTx = tema==='oscuro' ? '#e0e0e0' : '#333';
+    var cardBg = tema==='oscuro' ? 'rgba(30,30,30,0.88)' : 'rgba(255,255,255,0.88)';
+    var perfilBg= tema==='oscuro'? '#1e1e1e' : '#fff';
+    var cardSh = tema==='oscuro' ? '0 0 30px rgba(0,0,0,.7)' : '0 0 20px rgba(0,0,0,.1)';
+    var bodyFondo = urlFondo
+        ? 'background-image:url("'+esc(urlFondo)+'");background-size:cover;background-position:center;background-attachment:fixed;'
+        : '';
+
+    return (
+        '    *{box-sizing:border-box;}\n'+
+        '    body{background:'+bodyBg+';'+bodyFondo+'margin:0;font-family:sans-serif;text-align:center;color:'+bodyTx+';min-height:100vh;}\n'+
+        '    .card{background:'+cardBg+';max-width:480px;margin:auto;min-height:100vh;box-shadow:'+cardSh+';backdrop-filter:blur(2px);}\n'+
+        '    .banner{height:170px;background:url("'+esc(bannerUrl)+'") center/cover #222;}\n'+
+        '    .v-cont{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;background:#000;}\n'+
+        '    .v-cont iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0;}\n'+
+        '    .perfil{width:110px;height:110px;border-radius:50%;margin-top:-55px;border:5px solid '+color+';background:'+perfilBg+';object-fit:cover;position:relative;}\n'+
+        '    .btn{display:block;padding:16px;margin:10px 20px;background:'+color+';color:#fff;text-decoration:none;border-radius:12px;font-weight:bold;}\n'+
+        '    .label{background:'+color+';color:#fff;padding:10px;font-size:11px;font-weight:bold;margin-top:20px;text-transform:uppercase;}\n'+
+        /* Redes sociales — minimalista translúcido */
+        '    .redes{display:flex;justify-content:center;gap:15px;padding:18px 10px;flex-wrap:nowrap;}\n'+
+        '    .red-ico{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;text-decoration:none;color:#fff;background:rgba(255,255,255,0.2);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);transition:transform .2s;}\n'+
+        '    .red-ico:active{transform:scale(.9);}\n'+
+        /* Acordeón */
+        '    .mod-acc{margin:10px 15px;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.12);}\n'+
+        '    .mod-trigger{width:100%;padding:14px 16px;background:'+color+';color:#fff;border:none;font-weight:bold;font-size:15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;text-align:left;letter-spacing:.3px;}\n'+
+        '    .chevron{display:inline-block;transition:transform .3s;font-size:12px;margin-left:8px;flex-shrink:0;}\n'+
+        '    .chevron.abierto{transform:rotate(180deg);}\n'+
+        '    .mod-body{max-height:0;overflow:hidden;transition:max-height .35s ease;background:'+modBg+';border:1px solid '+modBdr+';border-top:none;border-radius:0 0 12px 12px;}\n'+
+        '    .mod-body-inner{padding:16px;text-align:left;}\n'+
+        /* Carrusel */
+        '    .carrusel{position:relative;overflow:hidden;border-radius:10px;margin-bottom:12px;}\n'+
+        '    .car-track{display:flex;transition:transform .35s ease;will-change:transform;}\n'+
+        '    .car-slide{min-width:100%;flex-shrink:0;}\n'+
+        '    .car-slide img{width:100%;display:block;border-radius:10px;object-fit:cover;}\n'+
+        '    .car-dots{display:flex;justify-content:center;gap:7px;padding:8px 0 4px;}\n'+
+        '    .dot{width:9px;height:9px;border-radius:50%;background:#ccc;cursor:pointer;transition:background .2s;border:none;padding:0;}\n'+
+        '    .dot.activo{background:'+color+';}\n'+
+        /* Botones del módulo */
+        '    .mod-desc{font-size:14px;margin:0 0 12px 0;color:'+descCl+';line-height:1.5;}\n'+
+        '    .mod-h3{margin:0 0 8px 0;color:'+color+';font-size:16px;}\n'+
+        '    .btn-extra{display:block;padding:12px;background:'+color+';color:#fff;text-align:center;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px;margin-bottom:8px;}\n'+
+        '    .btn-consultar{display:block;width:100%;padding:13px;background:#25d366;color:#fff;text-align:center;border:none;border-radius:8px;font-weight:bold;font-size:14px;cursor:pointer;}\n'+
+        /* Otros */
+        '    .email-row{color:'+emailCl+';font-size:14px;text-decoration:none;}\n'+
+        '    input,textarea{background:'+inputBg+';border:1px solid '+inputBr+';color:'+inputCl+';border-radius:5px;padding:10px;font-size:14px;width:100%;margin-bottom:10px;}\n'+
+        '    .pie{color:'+pieCl+';font-size:10px;padding:20px;}\n'
+    );
+}
+
+// ════════════════════════════════════════════════
+// BLOQUE REDES SOCIALES
+// ════════════════════════════════════════════════
+function buildRedesBlock(){
+    var redes=[
+        {id:'rs_wsp',       bg:'#25d366',icon:'fa-brands fa-whatsapp',    pre:'https://wa.me/'},
+        {id:'rs_instagram', bg:'linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)',icon:'fa-brands fa-instagram',pre:''},
+        {id:'rs_facebook',  bg:'#1877f2', icon:'fa-brands fa-facebook-f', pre:''},
+        {id:'rs_youtube',   bg:'#ff0000', icon:'fa-brands fa-youtube',    pre:''},
+        {id:'rs_twitter',   bg:'#000',    icon:'fa-brands fa-x-twitter',  pre:''},
+        {id:'rs_tiktok',    bg:'#010101', icon:'fa-brands fa-tiktok',     pre:''},
+        {id:'rs_linkedin',  bg:'#0077b5', icon:'fa-brands fa-linkedin-in',pre:''}
+    ];
+    var iconos='';
+    redes.forEach(function(r){
+        var val=vt(r.id); if(!val)return;
+        var href=(r.pre&&!val.startsWith('http'))?r.pre+val:val;
+        iconos+='<a href="'+esc(href)+'" class="red-ico" target="_blank" rel="noopener"><i class="'+r.icon+'"></i></a>';
+    });
+    if(!iconos)return{faLink:'',redesHtml:''};
+    return{
+        faLink:'<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">',
+        redesHtml:'<div class="redes">'+iconos+'</div>'
+    };
+}
+
+// ════════════════════════════════════════════════
+// CONSTRUCTOR DE MÓDULO ORO (acordeón + carrusel)
+// ════════════════════════════════════════════════
+function buildModulo(t, imgsRaw, yr, d, bt, bl, wsp, color){
+    var y    = getYTId(yr);
+    var imgs = imgsRaw ? imgsRaw.split(',').map(function(u){return u.trim();}).filter(Boolean) : [];
+
+    if(!t && !imgs.length && !y && !d && !bt && !bl) return '';
+
+    var titulo = t || 'Ver producto';
+    var inner  = '';
+
+    // ── Carrusel o imagen única ──
+    if(imgs.length > 1){
+        var slides = '';
+        var dots   = '';
+        imgs.forEach(function(url, idx){
+            slides += '<div class="car-slide"><img src="'+esc(url)+'" alt="'+esc(titulo)+' '+(idx+1)+'"></div>';
+            dots   += '<button class="dot'+(idx===0?' activo':'')+'" onclick="goSlide(this,'+idx+')"></button>';
+        });
+        inner += '<div class="carrusel" data-idx="0"><div class="car-track">'+slides+'</div><div class="car-dots">'+dots+'</div></div>';
+    } else if(imgs.length === 1){
+        inner += '<img src="'+esc(imgs[0])+'" alt="'+esc(titulo)+'" style="width:100%;border-radius:10px;margin-bottom:12px;display:block;">';
+    }
+
+    // ── YouTube ──
+    if(y){
+        inner += '<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;margin-bottom:12px;">';
+        inner += '<iframe style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" src="https://www.youtube.com/embed/'+y+'" allowfullscreen></iframe>';
+        inner += '</div>';
+    }
+
+    // ── Título / Descripción ──
+    if(t)  inner += '<h3 class="mod-h3">'+esc(t)+'</h3>';
+    if(d)  inner += '<p class="mod-desc">'+esc(d)+'</p>';
+
+    // ── Botón Extra (opcional) ──
+    if(bt || bl){
+        var href = bl ? esc(bl) : '#';
+        inner += '<a href="'+href+'" class="btn-extra" target="_blank">'+esc(bt||'VER M\u00C1S')+'</a>';
+    }
+
+    // ── Botón WhatsApp Inteligente ──
+    if(wsp){
+        inner += '<button class="btn-consultar" data-nombre="'+esc(titulo)+'" onclick="consultarWsp(this,\''+esc(wsp)+'\')">'+
+                 '\uD83D\uDCAC CONSULTAR POR WHATSAPP</button>';
+    }
+
+    return (
+        '<div class="mod-acc">' +
+        '<button class="mod-trigger" onclick="toggleMod(this)">' +
+        esc(titulo) + '<span class="chevron">&#9660;</span>' +
+        '</button>' +
+        '<div class="mod-body"><div class="mod-body-inner">' +
+        inner +
+        '</div></div></div>'
+    );
+}
+
+// ════════════════════════════════════════════════
+// JS EMBEBIDO EN LA TARJETA FINAL
+// ════════════════════════════════════════════════
+var CARD_JS =
+'<script>\n'+
+'function toggleMod(btn){\n'+
+'  var b=btn.nextElementSibling;\n'+
+'  var c=btn.querySelector(".chevron");\n'+
+'  if(b.style.maxHeight&&b.style.maxHeight!=="0px"){\n'+
+'    b.style.maxHeight="0px";c.classList.remove("abierto");\n'+
+'  }else{\n'+
+'    b.style.maxHeight=b.scrollHeight+"px";c.classList.add("abierto");\n'+
+'    setTimeout(function(){if(b.style.maxHeight!=="0px")b.style.maxHeight="none";},360);\n'+
+'  }\n'+
+'}\n'+
+'function goSlide(dot,idx){\n'+
+'  var car=dot.closest(".carrusel");\n'+
+'  car.querySelector(".car-track").style.transform="translateX(-"+(idx*100)+"%)";\n'+
+'  car.querySelectorAll(".dot").forEach(function(d,i){d.classList.toggle("activo",i===idx);});\n'+
+'  car.setAttribute("data-idx",idx);\n'+
+'}\n'+
+'function consultarWsp(btn,wspNum){\n'+
+'  var body=btn.closest(".mod-body");\n'+
+'  var car=body?body.querySelector(".carrusel"):null;\n'+
+'  var nombre=btn.getAttribute("data-nombre");\n'+
+'  var imgActual="";\n'+
+'  if(car){\n'+
+'    var idx=parseInt(car.getAttribute("data-idx")||"0");\n'+
+'    var slides=car.querySelectorAll(".car-slide img");\n'+
+'    if(slides[idx])imgActual=slides[idx].src;\n'+
+'  }\n'+
+'  var msg="Hola, me interesa este producto: "+nombre+(imgActual?". Aqu\\u00ED puedes verlo: "+imgActual:"")+".";\n'+
+'  window.open("https://wa.me/"+wspNum+"?text="+encodeURIComponent(msg),"_blank");\n'+
+'}\n'+
+'<\/script>';
+
+// ════════════════════════════════════════════════
+// MINIFICADOR HTML (preserva bloques script/style)
+// ════════════════════════════════════════════════
+function minifyHTML(html){
+    var parts=html.split(/(<(?:script|style)[\s\S]*?<\/(?:script|style)>)/gi);
+    return parts.map(function(part,i){
+        if(i%2===0){
+            return part
+                .replace(/<!--[\s\S]*?-->/g,'')
+                .replace(/\s*\n\s*/g,'')
+                .replace(/>\s+</g,'><')
+                .replace(/\s{2,}/g,' ');
+        }
+        return part.replace(/\n\s*\n/g,'\n').replace(/^\s{2,}/gm,'');
+    }).join('');
+}
+
+// ════════════════════════════════════════════════
+// CONSTRUCTOR HTML FINAL
+// ════════════════════════════════════════════════
+function construirHTML(){
+    var color        = v('mainColor')||'#00ff41';
+    var nombre       = vt('nombre') ||'Ecosistema Digital';
+    var prof         = vt('profesion');
+    var urlFondo     = vt('url_fondo');
+    var htmlHead     = v('html_head');
+    var htmlBodyOpen = v('html_body_open');
+    var htmlBodyClose= v('html_body_close');
+    var banner       = vt('banner');
+    var perfil       = vt('perfil');
+    var ytMain       = getYTId(v('yt_gancho'));
+    var wsp          = vt('wsp');
+    var emailCli     = vt('email_cli');
+    var ctaLink      = vt('cta_link');
+    var ctaTxt       = vt('cta_txt')||'CONTINUAR';
+    var mp           = vt('mp');
+    var emailForm    = vt('email_id');
+
+    // ── Módulos (solo los VISIBLES) ──
+    var bloqueModulos='';
+    document.querySelectorAll('.sec-box').forEach(function(item){
+        if(item.dataset.visible==='false')return;
+        var t  = item.querySelector('.m-tit')?.value.trim()     ||'';
+        var im = item.querySelector('.m-imgs')?.value.trim()    ||'';
+        var yr = item.querySelector('.m-yt')?.value.trim()      ||'';
+        var d  = item.querySelector('.m-desc')?.value.trim()    ||'';
+        var bt = item.querySelector('.m-btn-txt')?.value.trim() ||'';
+        var bl = item.querySelector('.m-btn-link')?.value.trim()||'';
+        bloqueModulos += buildModulo(t,im,yr,d,bt,bl,wsp,color);
+    });
+
+    // ── Bloques simples ──
+    var bannerBlk   = banner   ?'<div class="banner"></div>':'';
+    var ytBlk       = ytMain   ?'<div class="v-cont"><iframe src="https://www.youtube.com/embed/'+ytMain+'" allowfullscreen></iframe></div>':bannerBlk;
+    var perfilBlk   = perfil   ?'<img src="'+esc(perfil)+'" class="perfil" alt="'+esc(nombre)+'">':'';
+    var profBlk     = prof     ?'<p style="color:#888;margin:0 0 10px 0;">'+esc(prof)+'</p>':'';
+    var wspBlk      = wsp      ?'<a href="https://wa.me/'+esc(wsp)+'" class="btn" style="background:#25d366;">WHATSAPP</a>':'';
+    var emailCliBlk = emailCli ?'<div style="padding:6px 20px;"><a href="mailto:'+esc(emailCli)+'" class="email-row">\uD83D\uDCE7 '+esc(emailCli)+'</a></div>':'';
+    var ctaBlk      = ctaLink  ?'<a href="'+esc(ctaLink)+'" class="btn" style="background:#ff9900;border:2px solid #fff;">\uD83D\uDE80 '+esc(ctaTxt)+'</a>':'';
+    var mpBlk       = mp       ?'<a href="'+esc(mp)+'" class="btn" style="background:#00a1e4;">MERCADO PAGO</a>':'';
+    var emailFrmBlk = emailForm
+        ?'<div class="label">CONTACTO</div><form action="https://formspree.io/f/'+esc(emailForm)+'" method="POST" style="padding:20px;text-align:left;"><input type="text" name="name" placeholder="Tu Nombre"><textarea name="msg" placeholder="Tu Mensaje" style="height:80px;"></textarea><button type="submit" style="background:'+color+';color:#fff;width:100%;padding:12px;border:none;border-radius:5px;font-weight:bold;font-size:15px;">ENVIAR</button></form>'
+        :'';
+
+    var pdfBlk = vt('pdf_url')
+        ?'<a href="'+esc(vt('pdf_url'))+'" class="btn" style="background:#e53935;" target="_blank" download>\uD83D\uDCC4 DESCARGAR PDF</a>'
+        :'';
+
+    // ── Redes ──
+    var redes   = buildRedesBlock();
+    var faLink  = redes.faLink;
+    var redesHtml = redes.redesHtml;
+
+    // ── OG ──
+    var ogTitle = esc(nombre);
+    var ogDesc  = prof?esc(prof):ogTitle;
+    var ogImage = perfil?esc(perfil):(banner?esc(banner):'');
+    var ogMeta  =
+        '  <meta property="og:type"        content="website">\n'+
+        '  <meta property="og:title"       content="'+ogTitle+'">\n'+
+        '  <meta property="og:description" content="'+ogDesc+'">\n'+
+        (ogImage?'  <meta property="og:image"       content="'+ogImage+'">\n':'')+
+        '  <meta name="twitter:card"  content="summary_large_image">\n'+
+        '  <meta name="twitter:title" content="'+ogTitle+'">\n'+
+        (ogImage?'  <meta name="twitter:image" content="'+ogImage+'">\n':'');
+
+    var cssBloque = getCSSbyTema(temaActual,color,banner,urlFondo);
+    var temaTag   = temaActual==='oscuro'?'DARK':'LIGHT';
+
+    var html=
+        '<!DOCTYPE html>\n'+
+        '<html lang="es">\n'+
+        '<head>\n'+
+        '  <meta charset="UTF-8">\n'+
+        '  <meta name="viewport" content="width=device-width,initial-scale=1.0">\n'+
+        '  <title>'+ogTitle+'</title>\n'+
+        ogMeta+
+        (faLink?'  '+faLink+'\n':'')+
+        '  <style>\n'+cssBloque+'  </style>\n'+
+        (htmlHead?'%%INJECT_HEAD%%':'')+
+        '</head>\n'+
+        '<body>\n'+
+        (htmlBodyOpen?'%%INJECT_BODYOPEN%%':'')+
+        '  <div class="card">\n'+
+        '    '+ytBlk+'\n'+
+        '    '+perfilBlk+'\n'+
+        '    <h1 style="margin:10px 0 5px 0;">'+ogTitle+'</h1>\n'+
+        '    '+profBlk+'\n'+
+        (redesHtml?'    '+redesHtml+'\n':'')+
+        '    '+wspBlk+'\n'+
+        '    '+emailCliBlk+'\n'+
+        bloqueModulos+'\n'+
+        '    '+ctaBlk+'\n'+
+        '    '+mpBlk+'\n'+
+        (pdfBlk?'    '+pdfBlk+'\n':'')+
+        '    '+emailFrmBlk+'\n'+
+        '    <div style="text-align:center;padding:14px 20px 24px;">\n'+
+        '      <a href="https://wa.me/5493764369001?text=Busco%20informaci%C3%B3n%20de%20c%C3%B3mo%20obtener%20mi%20tarjeta%20digital."\n'+
+        '         target="_blank" rel="noopener"\n'+
+        '         style="font-size:0.8rem;font-family:Georgia,serif;color:rgba(160,160,160,0.75);text-decoration:none;letter-spacing:0.2px;">\n'+
+        '        Desarrollado por portaldigitalofficiall@gmail.com\n'+
+        '      </a>\n'+
+        '    </div>\n'+
+        '  </div>\n'+
+        CARD_JS+'\n'+
+        (htmlBodyClose?'%%INJECT_BODYCLOSE%%':'')+
+        '</body>\n'+
+        '</html>';
+
+    var minified=minifyHTML(html);
+    if(htmlHead)      minified=minified.replace('%%INJECT_HEAD%%',      '\n'+htmlHead+'\n');
+    if(htmlBodyOpen)  minified=minified.replace('%%INJECT_BODYOPEN%%',  '\n'+htmlBodyOpen+'\n');
+    if(htmlBodyClose) minified=minified.replace('%%INJECT_BODYCLOSE%%', '\n'+htmlBodyClose+'\n');
+    return{html:minified,nombre:nombre};
+}
+
+// ════════════════════════════════════════════════
+// GENERAR / COPIAR / ZIP
+// ════════════════════════════════════════════════
+// ── Genera objeto JSON de respaldo con todos los campos ──
+function buildAJSON(){
+    var data={tema:temaActual};
+    CAMPOS_FIJOS.forEach(function(id){
+        var el=document.getElementById(id);
+        if(el) data[id]=el.value;
+    });
+    var modulos=[];
+    document.querySelectorAll('.sec-box').forEach(function(box){
+        modulos.push({
+            visible: box.dataset.visible!=='false',
+            tit:     (box.querySelector('.m-tit')     ||{}).value||'',
+            imgs:    (box.querySelector('.m-imgs')    ||{}).value||'',
+            yt:      (box.querySelector('.m-yt')      ||{}).value||'',
+            desc:    (box.querySelector('.m-desc')    ||{}).value||'',
+            btn_txt: (box.querySelector('.m-btn-txt') ||{}).value||'',
+            btn_link:(box.querySelector('.m-btn-link')||{}).value||''
+        });
+    });
+    data.modulos=modulos;
+    return JSON.stringify(data,null,2);
+}
+
+// ── Importa un A-JSON y rellena todos los campos ──
+function cargarAJSON(input){
+    var file=input.files[0];
+    if(!file)return;
+    var reader=new FileReader();
+    reader.onload=function(e){
+        var data;
+        try{data=JSON.parse(e.target.result);}
+        catch(err){alert('Archivo JSON inválido o corrupto.');return;}
+        if(data.tema) setTema(data.tema);
+        CAMPOS_FIJOS.forEach(function(id){
+            var el=document.getElementById(id);
+            if(el&&data[id]!==undefined) el.value=data[id];
+        });
+        document.getElementById('modulosContainer').innerHTML='';
+        if(Array.isArray(data.modulos)) data.modulos.forEach(function(m){addModulo(m);});
+        guardarDatos();
+        alert('\u2705 A-JSON cargado. Todos los campos restaurados.');
+    };
+    reader.readAsText(file);
+    input.value='';
+}
+
+// ── Acción principal: genera HTML + A-JSON y empaqueta ZIP ──
+function accionPrincipal(){
+    var r=construirHTML();
+    if(!r||!r.html){alert('Error al generar el HTML.');return;}
+    document.getElementById('finalCode').value=r.html;
+    document.getElementById('resultArea').style.display='block';
+    var statusEl=document.getElementById('zipStatus');
+    statusEl.className='zip-status ok';
+    statusEl.textContent='Empaquetando ZIP + A-JSON...';
+    window.scrollTo(0,0);
+
+    if(typeof JSZip==='undefined'){
+        statusEl.className='zip-status err';
+        statusEl.textContent='ERROR: JSZip no cargó. Verificá conexión.';
+        return;
+    }
+    var nombre    = vt('nombre')||'Ecosistema';
+    var slug      = slugify(nombre);
+    var jsonNombre= nombre.replace(/\s+/g,'_')+'_A-JSON';
+    var jsonStr   = buildAJSON();
+    var redirects ='/*\t/index.html\t200\n/404\t/index.html\t200\n';
+
+    var zip=new JSZip();
+    zip.file('index.html',r.html);
+    zip.file('_redirects',redirects);
+    zip.file(jsonNombre+'.json',jsonStr);
+    zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:9}})
+        .then(function(blob){
+            var url=URL.createObjectURL(blob);
+            var a=document.createElement('a');
+            a.href=url;a.download=slug+'.zip';
+            document.body.appendChild(a);a.click();document.body.removeChild(a);
+            setTimeout(function(){URL.revokeObjectURL(url);},3000);
+            statusEl.className='zip-status ok';
+            statusEl.textContent='\u2705 ZIP NETLIFY LISTO: '+slug+'.zip  |  index.html + _redirects + '+jsonNombre+'.json';
+        })
+        .catch(function(err){
+            statusEl.className='zip-status err';
+            statusEl.textContent='ERROR: '+err.message;
+        });
+}
+
+function forjarEcosistema(){
+    var r=construirHTML();
+    document.getElementById('finalCode').value=r.html;
+    document.getElementById('resultArea').style.display='block';
+    document.getElementById('zipStatus').className='zip-status';
+    window.scrollTo(0,0);
+}
+function copiarCodigo(){
+    var area=document.getElementById('finalCode');
+    area.select();
+    document.execCommand('copy');
+    alert('CÓDIGO HTML COPIADO AL PORTAPAPELES');
+}
+function descargarZip(){
+    var htmlActual=document.getElementById('finalCode').value;
+    if(!htmlActual){alert('Primero presioná GENERAR.');return;}
+    accionPrincipal();
+}
+
+// ════════════════════════════════════════════════
+// INICIO
+// ════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',function(){
+    cargarDatos();
+    escucharCambios();
+});
+</script>
+</body>
+</html>
